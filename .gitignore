@@ -1,0 +1,17 @@
+# Compiled object files and executables
+*.o
+*.a
+*.exe
+
+# Compiled packages
+*.pkg
+*.zip
+
+# Dependency directories (vendor/ is used by some Go projects)
+vendor/
+Godeps/
+
+# Temporary files
+*.log
+*.swp
+.DS_Store
