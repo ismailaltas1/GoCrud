@@ -76,7 +76,7 @@ func DeleteBook(c echo.Context) error {
 			books = append(books[:i], books[i+1:]...) // ilk indexden i nin indexe kadar yeni bir slice oluşturulur
 			//i+1 den array deki son elemana kadar yeni bir slice oluşturulur. ... ikinci arrayin birinci arrayden farklı bir arguman olduğunu beliritir.
 			// append methoduyla iki slice birleştirilir.
-			return c.JSON(http.StatusOK, books)
+			return c.JSON(http.StatusNoContent, books)
 		}
 	}
 	return c.JSON(http.StatusNotFound, "element not found")
