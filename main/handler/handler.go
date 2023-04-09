@@ -1,84 +1,124 @@
 package handler
 
 import (
+	"context"
 	"github.com/labstack/echo/v4"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
-	"strconv"
+	"time"
 )
 
 type Book struct {
-	ID     int    `json:"id"`
-	Title  string `json:"title"`
-	Author string `json:"author"`
+	ID     primitive.ObjectID `json:"_id"`
+	Title  string             `json:"title"`
+	Author string             `json:"author"`
+}
+type BookHandler struct {
+	collection *mongo.Collection
 }
 
-var books []Book = []Book{
-	{ID: 1, Title: "title1", Author: "ismail1"},
-	{ID: 2, Title: "title2", Author: "ismail2"},
-	{ID: 3, Title: "title3", Author: "ismail3"},
+func NewBookHandler(collection *mongo.Collection) *BookHandler {
+	return &BookHandler{collection: collection}
 }
 
-func GetBooks(c echo.Context) error {
+func (h *BookHandler) GetBooks(c echo.Context) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cursor, err := h.collection.Find(ctx, bson.M{})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "could not retrieve books.")
+	}
+	defer cursor.Close(ctx)
+
+	var books []Book
+	if err = cursor.All(ctx, &books); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "could not decode books")
+	}
+
 	return c.JSON(http.StatusOK, books)
 }
 
-func GetBook(c echo.Context) error {
-	id, err := strconv.Atoi(c.Param("id"))
+func (h *BookHandler) GetBook(c echo.Context) error {
+	id, err := primitive.ObjectIDFromHex(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "convertion erorr")
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
 	}
-	for _, b := range books {
-		if id == b.ID {
-			return c.JSON(http.StatusOK, b)
+	var book Book
+	err = h.collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&book)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return echo.NewHTTPError(http.StatusNotFound, "book not found")
+		} else {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 	}
-	return c.JSON(http.StatusNotFound, "book not found")
+	return c.JSON(http.StatusOK, book)
 }
 
-func PostBook(c echo.Context) error {
-	b := new(Book)
-	if err := c.Bind(b); err != nil {
-		return err
+func (h *BookHandler) PostBook(c echo.Context) error {
+	var book Book
+	if err := c.Bind(&book); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
 	}
-	b.ID = len(books) + 1
-	books = append(books, *b)
-	return c.JSON(http.StatusCreated, books)
-}
 
-func PutBook(c echo.Context) error {
-	paramId, err := strconv.Atoi(c.Param("id"))
+	result, err := h.collection.InsertOne(context.Background(), book)
+
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid book id")
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
+	book.ID = result.InsertedID.(primitive.ObjectID)
 
-	for i, book := range books {
+	return c.JSON(http.StatusCreated, book)
+}
 
-		if book.ID == paramId {
-			b := &Book{ID: paramId}
-			if err := c.Bind(b); err != nil {
-				return err
-			}
-			books[i] = *b
-			return c.JSON(http.StatusOK, books)
-		}
+func (h *BookHandler) PutBook(c echo.Context) error {
+	id, err := primitive.ObjectIDFromHex(c.Param("id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
 	}
-	return c.JSON(http.StatusNotFound, "book not found")
+	var reqBook Book
+	if err := c.Bind(&reqBook); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	update := bson.M{
+		"$set": bson.M{
+			"title":  reqBook.Title,
+			"author": reqBook.Author,
+		},
+	}
+	result, err := h.collection.UpdateOne(
+		context.Background(),
+		bson.M{"_id": id},
+		update,
+	)
+
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	if result.MatchedCount == 0 {
+		return echo.NewHTTPError(http.StatusNotFound, "book not found")
+	}
+	reqBook.ID = id
+	return c.JSON(http.StatusOK, reqBook)
 
 }
 
-func DeleteBook(c echo.Context) error {
-	id, err := strconv.Atoi(c.Param("id"))
+func (h *BookHandler) DeleteBook(c echo.Context) error {
+
+	id, err := primitive.ObjectIDFromHex(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "convertion error")
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
 	}
-	for i, book := range books {
-		if book.ID == id {
-			books = append(books[:i], books[i+1:]...) // ilk indexden i nin indexe kadar yeni bir slice oluşturulur
-			//i+1 den array deki son elemana kadar yeni bir slice oluşturulur. ... ikinci arrayin birinci arrayden farklı bir arguman olduğunu beliritir.
-			// append methoduyla iki slice birleştirilir.
-			return c.JSON(http.StatusNoContent, books)
-		}
+
+	result, err := h.collection.DeleteOne(context.Background(), bson.M{"_id": id})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "not deleted")
 	}
-	return c.JSON(http.StatusNotFound, "element not found")
+	if result.DeletedCount == 0 {
+		return echo.NewHTTPError(http.StatusNotFound, "book not found")
+	}
+	return c.NoContent(http.StatusNoContent)
 
 }
