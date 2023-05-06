@@ -2,35 +2,20 @@ package handler
 
 import (
 	"awesomeProject/main/internal/models"
+	"awesomeProject/main/internal/repositories"
 	"bytes"
-	"context"
 	"encoding/json"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	context2 "golang.org/x/net/context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
-type MockBookRepository struct {
-	mock.Mock
-}
-
-func (m *MockBookRepository) CreateBooks(ctx context2.Context, book models.Book) (err error) {
-	args := m.Called(ctx, book)
-	return args.Error(0)
-}
-
-func (m *MockBookRepository) GetBooks(ctx context.Context) ([]models.Book, error) {
-	args := m.Called(ctx)
-	return args.Get(0).([]models.Book), args.Error(1)
-}
-
 func TestGetBooks(t *testing.T) {
 	e := echo.New()
-	mockBookRepository := new(MockBookRepository)
+	mockBookRepository := new(repositories.MockBookRepository)
 	mockBooks := []models.Book{
 		{ID: "1", Title: "Book1", Author: "Author1"},
 		{ID: "2", Title: "Book2", Author: "Author2"},
@@ -53,7 +38,7 @@ func TestGetBooks(t *testing.T) {
 
 func TestCreateBooks(t *testing.T) {
 	e := echo.New()
-	mockBookRepository := new(MockBookRepository)
+	mockBookRepository := new(repositories.MockBookRepository)
 	mockBook := models.Book{ID: "1", Title: "Book1", Author: "Author1"}
 
 	mockBookRepository.On("CreateBooks", mock.Anything, mockBook).Return(nil)
