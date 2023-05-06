@@ -1,96 +1,75 @@
-package handler_test
+package handler
 
 import (
-	"awesomeProject/main/handler"
+	"awesomeProject/main/internal/models"
 	"bytes"
+	"context"
 	"encoding/json"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	_ "go.mongodb.org/mongo-driver/mongo"
+	"github.com/stretchr/testify/mock"
+	context2 "golang.org/x/net/context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
-type MockBookStore struct{}
-
-func (m *MockBookStore) InsertOne(book *handler.Book) (primitive.ObjectID, error) {
-	// Mock implementation to return a new ObjectID
-	return primitive.NewObjectID(), nil
+type MockBookRepository struct {
+	mock.Mock
 }
 
-func (m *MockBookStore) GetAllBooks() ([]handler.Book, error) {
-	// Mock implementation to return a list of books
-	return []handler.Book{
-		{
-			ID:     primitive.NewObjectID(),
-			Title:  "Book1",
-			Author: "Author1",
-		},
-		{
-			ID:     primitive.NewObjectID(),
-			Title:  "Book2",
-			Author: "Author2",
-		},
-	}, nil
+func (m *MockBookRepository) CreateBooks(ctx context2.Context, book models.Book) (err error) {
+	args := m.Called(ctx, book)
+	return args.Error(0)
+}
+
+func (m *MockBookRepository) GetBooks(ctx context.Context) ([]models.Book, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]models.Book), args.Error(1)
 }
 
 func TestGetBooks(t *testing.T) {
-	// Create a new Echo instance
 	e := echo.New()
+	mockBookRepository := new(MockBookRepository)
+	mockBooks := []models.Book{
+		{ID: "1", Title: "Book1", Author: "Author1"},
+		{ID: "2", Title: "Book2", Author: "Author2"},
+	}
 
-	// Create a new book handler with the mock book store
-	bookHandler := handler.NewBookHandler(&MockBookStore{})
-
-	// Register the GetBooks endpoint
-	e.GET("/books", bookHandler.GetBooks)
-
-	// Create a new test request
+	mockBookRepository.On("GetBooks", mock.Anything).Return(mockBooks, nil)
 	req := httptest.NewRequest(http.MethodGet, "/books", nil)
 	rec := httptest.NewRecorder()
+
 	c := e.NewContext(req, rec)
 
-	// Execute the handler
-	if assert.NoError(t, bookHandler.GetBooks(c)) {
-		assert.Equal(t, http.StatusOK, rec.Code)
+	h := NewBookHandler(mockBookRepository)
+	err := h.GetBooks(c)
 
-		var books []handler.Book
-		err := json.Unmarshal(rec.Body.Bytes(), &books)
-		assert.NoError(t, err)
-		assert.Len(t, books, 2)
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.JSONEq(t, `[{"_id":"1","title":"Book1","author":"Author1"},{"_id":"2","title":"Book2","author":"Author2"}]`, rec.Body.String())
+	mockBookRepository.AssertExpectations(t)
 }
 
-func TestPostBook(t *testing.T) {
-	// Create a new Echo instance
+func TestCreateBooks(t *testing.T) {
 	e := echo.New()
+	mockBookRepository := new(MockBookRepository)
+	mockBook := models.Book{ID: "1", Title: "Book1", Author: "Author1"}
 
-	// Create a new book handler with the mock book store
-	bookHandler := handler.NewBookHandler(&MockBookStore{})
-
-	// Register the PostBook endpoint
-	e.POST("/books", bookHandler.PostBook)
-
-	// Create a new test request
-	book := handler.Book{
-		Title:  "New Book",
-		Author: "New Author",
-	}
-	body, _ := json.Marshal(book)
-	req := httptest.NewRequest(http.MethodPost, "/books", bytes.NewReader(body))
+	mockBookRepository.On("CreateBooks", mock.Anything, mockBook).Return(nil)
+	bookJson, _ := json.Marshal(mockBook)
+	req := httptest.NewRequest(http.MethodPost, "/books", bytes.NewReader(bookJson))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
+
 	c := e.NewContext(req, rec)
 
-	// Execute the handler
-	if assert.NoError(t, bookHandler.PostBook(c)) {
-		assert.Equal(t, http.StatusCreated, rec.Code)
+	h := NewBookHandler(mockBookRepository)
+	err := h.PostBook(c)
 
-		var createdBook handler.Book
-		err := json.Unmarshal(rec.Body.Bytes(), &createdBook)
-		assert.NoError(t, err)
-		assert.Equal(t, book.Title, createdBook.Title)
-		assert.Equal(t, book.Author, createdBook.Author)
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, rec.Code)
+	assert.JSONEq(t, `{"_id":"1","title":"Book1","author":"Author1"}`, rec.Body.String())
+	mockBookRepository.AssertExpectations(t)
+
 }

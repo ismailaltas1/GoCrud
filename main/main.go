@@ -3,6 +3,8 @@ package main
 
 import (
 	"awesomeProject/main/handler"
+	"awesomeProject/main/internal/repositories"
+	"awesomeProject/main/pkg/mongoextensions"
 	"context"
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -28,12 +30,15 @@ func main() {
 	}
 	defer client.Disconnect(ctx)
 
-	bookHandler := handler.NewBookHandler(client.Database("bookstore").Collection("books"))
+	mongoClient := mongoextensions.GetDatabase("mongodb://localhost:27017", "bookstore")
+	bookRepository := repositories.NewBooksRepository(mongoClient)
+	bookHandler := handler.NewBookHandler(bookRepository)
 	e.GET("/books", bookHandler.GetBooks)
-	e.GET("/books/:id", bookHandler.GetBook)
 	e.POST("/books", bookHandler.PostBook)
+	/*e.GET("/books/:id", bookHandler.GetBook)
+
 	e.PUT("/books/:id", bookHandler.PutBook)
-	e.DELETE("books/:id", bookHandler.DeleteBook)
+	e.DELETE("books/:id", bookHandler.DeleteBook)*/
 	e.Logger.Fatal(e.Start(":8080"))
 
 }

@@ -1,51 +1,35 @@
 package handler
 
 import (
+	"awesomeProject/main/internal/models"
+	"awesomeProject/main/internal/repositories"
 	"context"
 	"github.com/labstack/echo/v4"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
-	"time"
 )
 
-type Book struct {
-	ID     primitive.ObjectID `json:"_id"`
-	Title  string             `json:"title"`
-	Author string             `json:"author"`
-}
 type BookHandler struct {
-	collection *mongo.Collection
+	bookRepository repositories.IBookRepository
 }
 
-func NewBookHandler(collection *mongo.Collection) *BookHandler {
-	return &BookHandler{collection: collection}
+func NewBookHandler(bookRepository repositories.IBookRepository) *BookHandler {
+	return &BookHandler{
+		bookRepository: bookRepository,
+	}
 }
 
 func (h *BookHandler) GetBooks(c echo.Context) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	cursor, err := h.collection.Find(ctx, bson.M{})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "could not retrieve books.")
-	}
-	defer cursor.Close(ctx)
-
-	var books []Book
-	if err = cursor.All(ctx, &books); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "could not decode books")
-	}
-
+	books, _ := h.bookRepository.GetBooks(context.Background())
 	return c.JSON(http.StatusOK, books)
 }
 
+/*
 func (h *BookHandler) GetBook(c echo.Context) error {
 	id, err := primitive.ObjectIDFromHex(c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
 	}
-	var book Book
+	var book models.Book
 	err = h.collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&book)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -57,22 +41,23 @@ func (h *BookHandler) GetBook(c echo.Context) error {
 	return c.JSON(http.StatusOK, book)
 }
 
+*/
+
 func (h *BookHandler) PostBook(c echo.Context) error {
-	var book Book
+	var book models.Book
 	if err := c.Bind(&book); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
 	}
 
-	result, err := h.collection.InsertOne(context.Background(), book)
-
+	err := h.bookRepository.CreateBooks(context.Background(), book)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-	book.ID = result.InsertedID.(primitive.ObjectID)
 
 	return c.JSON(http.StatusCreated, book)
 }
 
+/*
 func (h *BookHandler) PutBook(c echo.Context) error {
 	id, err := primitive.ObjectIDFromHex(c.Param("id"))
 	if err != nil {
@@ -100,7 +85,7 @@ func (h *BookHandler) PutBook(c echo.Context) error {
 	if result.MatchedCount == 0 {
 		return echo.NewHTTPError(http.StatusNotFound, "book not found")
 	}
-	reqBook.ID = id
+
 	return c.JSON(http.StatusOK, reqBook)
 
 }
@@ -122,3 +107,6 @@ func (h *BookHandler) DeleteBook(c echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 
 }
+
+
+*/
