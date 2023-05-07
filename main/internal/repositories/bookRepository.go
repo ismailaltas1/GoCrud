@@ -2,7 +2,9 @@ package repositories
 
 import (
 	"awesomeProject/main/internal/models"
+	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/net/context"
 	"log"
@@ -19,6 +21,7 @@ type IBookRepository interface {
 	GetBooks(ctx context.Context) (b []models.Book, err error)
 	CreateBooks(ctx context.Context, book models.Book) (err error)
 	GetBookById(background context.Context, id string) (book models.Book, err error)
+	UpdateBook(ctx context.Context, id string, book models.Book) (err error)
 }
 
 func NewBooksRepository(db *mongo.Database) IBookRepository {
@@ -55,4 +58,28 @@ func (br *BooksRepository) GetBookById(ctx context.Context, id string) (book mod
 func (br *BooksRepository) CreateBooks(ctx context.Context, book models.Book) (err error) {
 	_, err = br.db.InsertOne(ctx, book)
 	return
+}
+
+func (br *BooksRepository) UpdateBook(ctx context.Context, id string, book models.Book) (err error) {
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	update := bson.M{
+		"$set": bson.M{
+			"title":  book.Title,
+			"author": book.Author,
+		},
+	}
+	filter := bson.M{"_id": objID}
+	result, err := br.db.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to update book: %w", err)
+	}
+
+	if result.ModifiedCount == 0 {
+		return fmt.Errorf("no book found with the given id")
+	}
+	return nil
+
 }

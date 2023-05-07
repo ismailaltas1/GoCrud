@@ -47,6 +47,21 @@ func (h *BookHandler) PostBook(c echo.Context) error {
 	return c.JSON(http.StatusCreated, book)
 }
 
+func (h *BookHandler) PutBook(c echo.Context) error {
+	id := c.Param("id")
+
+	req := new(models.Book)
+	if err := c.Bind(req); err != nil {
+		return c.JSON(http.StatusBadRequest, "bad request")
+	}
+	err := h.bookRepository.UpdateBook(context.Background(), id, *req)
+
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+	return c.JSON(http.StatusOK, "")
+}
+
 /*
 func (h *BookHandler) PutBook(c echo.Context) error {
 	id, err := primitive.ObjectIDFromHex(c.Param("id"))

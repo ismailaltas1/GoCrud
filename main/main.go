@@ -36,10 +36,8 @@ func main() {
 	e.GET("/books", bookHandler.GetBooks)
 	e.POST("/books", bookHandler.PostBook)
 	e.GET("/books/:id", bookHandler.GetBookById)
-	/*e.GET("/books/:id", bookHandler.GetBook)
-
 	e.PUT("/books/:id", bookHandler.PutBook)
-	e.DELETE("books/:id", bookHandler.DeleteBook)*/
+	//e.DELETE("books/:id", bookHandler.DeleteBook)*/
 	e.Logger.Fatal(e.Start(":8080"))
 
 }

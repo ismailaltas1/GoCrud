@@ -71,3 +71,17 @@ func (_m *IBookRepository) GetBooks(ctx context.Context) ([]models.Book, error) 
 
 	return r0, r1
 }
+
+// UpdateBook provides a mock function with given fields: ctx, id, book
+func (_m *IBookRepository) UpdateBook(ctx context.Context, id string, book models.Book) error {
+	ret := _m.Called(ctx, id, book)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, models.Book) error); ok {
+		r0 = rf(ctx, id, book)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}

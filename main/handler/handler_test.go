@@ -4,6 +4,7 @@ import (
 	"awesomeProject/main/internal/models"
 	"awesomeProject/main/internal/repositories/mocks"
 	"bytes"
+	"context"
 	"encoding/json"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
@@ -13,7 +14,7 @@ import (
 	"testing"
 )
 
-func TestGetBooks(t *testing.T) {
+func TestBookHandler_GetBooks(t *testing.T) {
 	e := echo.New()
 	mockBookRepository := new(mocks.IBookRepository)
 	mockBooks := []models.Book{
@@ -36,7 +37,30 @@ func TestGetBooks(t *testing.T) {
 	mockBookRepository.AssertExpectations(t)
 }
 
-func TestCreateBooks(t *testing.T) {
+func TestBookHandler_GetBookById(t *testing.T) {
+	e := echo.New()
+	mockBookRepository := new(mocks.IBookRepository)
+	mockBooks := models.Book{ID: "1", Title: "Book1", Author: "Author1"}
+
+	mockBookRepository.On("GetBookById", context.Background(), "1").Return(mockBooks, nil)
+	req := httptest.NewRequest(http.MethodGet, "/books/1", nil)
+	rec := httptest.NewRecorder()
+
+	c := e.NewContext(req, rec)
+	c.SetParamNames("id")
+	c.SetParamValues("1")
+
+	h := NewBookHandler(mockBookRepository)
+	err := h.GetBookById(c)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.JSONEq(t, `{"_id":"1","title":"Book1","author":"Author1"}`, rec.Body.String())
+	mockBookRepository.AssertExpectations(t)
+
+}
+
+func TestBookHandler_PostBook(t *testing.T) {
 	e := echo.New()
 	mockBookRepository := new(mocks.IBookRepository)
 	mockBook := models.Book{ID: "1", Title: "Book1", Author: "Author1"}
@@ -56,5 +80,27 @@ func TestCreateBooks(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, rec.Code)
 	assert.JSONEq(t, `{"_id":"1","title":"Book1","author":"Author1"}`, rec.Body.String())
 	mockBookRepository.AssertExpectations(t)
+
+}
+
+func TestBookHandler_PutBook(t *testing.T) {
+	e := echo.New()
+	mockBookRepository := new(mocks.IBookRepository)
+	mockBook := models.Book{ID: "1", Title: "Book1", Author: "Author1"}
+
+	mockBookRepository.On("UpdateBook", mock.Anything, "1", mockBook).Return(nil)
+	bookBytes, _ := json.Marshal(mockBook)
+	req := httptest.NewRequest(http.MethodPut, "/books/1", bytes.NewReader(bookBytes))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/books/:id")
+	c.SetParamNames("id")
+	c.SetParamValues("1")
+
+	h := NewBookHandler(mockBookRepository)
+	err := h.PutBook(c)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
 
 }
