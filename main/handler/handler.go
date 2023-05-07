@@ -23,25 +23,15 @@ func (h *BookHandler) GetBooks(c echo.Context) error {
 	return c.JSON(http.StatusOK, books)
 }
 
-/*
-func (h *BookHandler) GetBook(c echo.Context) error {
-	id, err := primitive.ObjectIDFromHex(c.Param("id"))
+func (h *BookHandler) GetBookById(c echo.Context) error {
+	id := c.Param("id")
+	book, err := h.bookRepository.GetBookById(context.Background(), id)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
 	}
-	var book models.Book
-	err = h.collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&book)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return echo.NewHTTPError(http.StatusNotFound, "book not found")
-		} else {
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-		}
-	}
 	return c.JSON(http.StatusOK, book)
-}
 
-*/
+}
 
 func (h *BookHandler) PostBook(c echo.Context) error {
 	var book models.Book

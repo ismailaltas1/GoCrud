@@ -14,9 +14,11 @@ type BooksRepository struct {
 	db *mongo.Collection
 }
 
+//go:generate mockery --name IBookRepository
 type IBookRepository interface {
 	GetBooks(ctx context.Context) (b []models.Book, err error)
 	CreateBooks(ctx context.Context, book models.Book) (err error)
+	GetBookById(background context.Context, id string) (book models.Book, err error)
 }
 
 func NewBooksRepository(db *mongo.Database) IBookRepository {
@@ -45,10 +47,9 @@ func (br *BooksRepository) GetBooks(ctx context.Context) (b []models.Book, err e
 
 }
 
-func (br *BooksRepository) GetBooksById(ctx context.Context, id string) (b models.Book, err error) {
-
-	err = br.db.FindOne(ctx, bson.M{"_id": id}).Decode(&b)
-	return b, err
+func (br *BooksRepository) GetBookById(ctx context.Context, id string) (book models.Book, err error) {
+	err = br.db.FindOne(ctx, bson.M{"_id": id}).Decode(&book)
+	return book, err
 }
 
 func (br *BooksRepository) CreateBooks(ctx context.Context, book models.Book) (err error) {

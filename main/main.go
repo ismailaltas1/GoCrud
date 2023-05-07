@@ -35,6 +35,7 @@ func main() {
 	bookHandler := handler.NewBookHandler(bookRepository)
 	e.GET("/books", bookHandler.GetBooks)
 	e.POST("/books", bookHandler.PostBook)
+	e.GET("/books/:id", bookHandler.GetBookById)
 	/*e.GET("/books/:id", bookHandler.GetBook)
 
 	e.PUT("/books/:id", bookHandler.PutBook)

@@ -2,7 +2,7 @@ package handler
 
 import (
 	"awesomeProject/main/internal/models"
-	"awesomeProject/main/internal/repositories"
+	"awesomeProject/main/internal/repositories/mocks"
 	"bytes"
 	"encoding/json"
 	"github.com/labstack/echo/v4"
@@ -15,7 +15,7 @@ import (
 
 func TestGetBooks(t *testing.T) {
 	e := echo.New()
-	mockBookRepository := new(repositories.MockBookRepository)
+	mockBookRepository := new(mocks.IBookRepository)
 	mockBooks := []models.Book{
 		{ID: "1", Title: "Book1", Author: "Author1"},
 		{ID: "2", Title: "Book2", Author: "Author2"},
@@ -38,7 +38,7 @@ func TestGetBooks(t *testing.T) {
 
 func TestCreateBooks(t *testing.T) {
 	e := echo.New()
-	mockBookRepository := new(repositories.MockBookRepository)
+	mockBookRepository := new(mocks.IBookRepository)
 	mockBook := models.Book{ID: "1", Title: "Book1", Author: "Author1"}
 
 	mockBookRepository.On("CreateBooks", mock.Anything, mockBook).Return(nil)
