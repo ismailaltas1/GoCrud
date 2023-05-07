@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
+	mock "github.com/stretchr/testify/mock"
 	"net/http"
 	"net/http/httptest"
 	"testing"

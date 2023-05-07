@@ -1,0 +1,5 @@
+inpackage: False
+testonly: False
+keeptree: False
+recursive: true
+output: ./main/internal/repositories/mocks
