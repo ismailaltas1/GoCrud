@@ -28,6 +28,20 @@ func (_m *IBookRepository) CreateBooks(ctx context.Context, book models.Book) er
 	return r0
 }
 
+// DeleteBook provides a mock function with given fields: background, id
+func (_m *IBookRepository) DeleteBook(background context.Context, id string) error {
+	ret := _m.Called(background, id)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(background, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // GetBookById provides a mock function with given fields: background, id
 func (_m *IBookRepository) GetBookById(background context.Context, id string) (models.Book, error) {
 	ret := _m.Called(background, id)

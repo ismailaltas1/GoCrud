@@ -62,56 +62,11 @@ func (h *BookHandler) PutBook(c echo.Context) error {
 	return c.JSON(http.StatusOK, "")
 }
 
-/*
-func (h *BookHandler) PutBook(c echo.Context) error {
-	id, err := primitive.ObjectIDFromHex(c.Param("id"))
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
-	}
-	var reqBook Book
-	if err := c.Bind(&reqBook); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-	update := bson.M{
-		"$set": bson.M{
-			"title":  reqBook.Title,
-			"author": reqBook.Author,
-		},
-	}
-	result, err := h.collection.UpdateOne(
-		context.Background(),
-		bson.M{"_id": id},
-		update,
-	)
-
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-	}
-	if result.MatchedCount == 0 {
-		return echo.NewHTTPError(http.StatusNotFound, "book not found")
-	}
-
-	return c.JSON(http.StatusOK, reqBook)
-
-}
-
 func (h *BookHandler) DeleteBook(c echo.Context) error {
-
-	id, err := primitive.ObjectIDFromHex(c.Param("id"))
+	id := c.Param("id")
+	err := h.bookRepository.DeleteBook(context.Background(), id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return echo.NewHTTPError(http.StatusBadRequest, "not deleted")
 	}
-
-	result, err := h.collection.DeleteOne(context.Background(), bson.M{"_id": id})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "not deleted")
-	}
-	if result.DeletedCount == 0 {
-		return echo.NewHTTPError(http.StatusNotFound, "book not found")
-	}
-	return c.NoContent(http.StatusNoContent)
-
+	return c.JSON(http.StatusOK, "")
 }
-
-
-*/

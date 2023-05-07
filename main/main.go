@@ -37,7 +37,7 @@ func main() {
 	e.POST("/books", bookHandler.PostBook)
 	e.GET("/books/:id", bookHandler.GetBookById)
 	e.PUT("/books/:id", bookHandler.PutBook)
-	//e.DELETE("books/:id", bookHandler.DeleteBook)*/
+	e.DELETE("books/:id", bookHandler.DeleteBook)
 	e.Logger.Fatal(e.Start(":8080"))
 
 }

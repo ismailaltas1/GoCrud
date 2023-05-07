@@ -104,3 +104,22 @@ func TestBookHandler_PutBook(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 
 }
+
+func TestBookHandler_DeleteBook(t *testing.T) {
+	e := echo.New()
+	mockBookRepository := new(mocks.IBookRepository)
+	mockBookRepository.On("DeleteBook", mock.Anything, "1").Return(nil)
+
+	req := httptest.NewRequest(http.MethodDelete, "/books/1", nil)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/books/:id")
+	c.SetParamNames("id")
+	c.SetParamValues("1")
+
+	h := NewBookHandler(mockBookRepository)
+	err := h.DeleteBook(c)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+}

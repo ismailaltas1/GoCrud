@@ -22,6 +22,7 @@ type IBookRepository interface {
 	CreateBooks(ctx context.Context, book models.Book) (err error)
 	GetBookById(background context.Context, id string) (book models.Book, err error)
 	UpdateBook(ctx context.Context, id string, book models.Book) (err error)
+	DeleteBook(background context.Context, id string) (err error)
 }
 
 func NewBooksRepository(db *mongo.Database) IBookRepository {
@@ -82,4 +83,12 @@ func (br *BooksRepository) UpdateBook(ctx context.Context, id string, book model
 	}
 	return nil
 
+}
+func (br *BooksRepository) DeleteBook(ctx context.Context, id string) (err error) {
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %w", err)
+	}
+	_, err = br.db.DeleteOne(ctx, bson.M{"_id": objID})
+	return
 }
